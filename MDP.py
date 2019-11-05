@@ -19,7 +19,7 @@ class MDP:
         tuple.  AP: a set of atomic propositions. Each proposition is
         identified by an index between 0 -N.  L: the labeling
         function, implemented as a dictionary: state: a subset of AP."""
-    def __init__(self, init=[0], actlist=[], states=[0], prob=dict([]), acc= None, gamma=1, horizon = 1, AP=set([]), L=dict([])):
+    def __init__(self, init=[0], actlist=[], states=[0], prob=dict([]), acc= None, gamma=1, horizon = 2, AP=set([]), L=dict([])):
         self.init=init
         self.actlist=actlist
         self.states=states
@@ -85,7 +85,7 @@ class MDP:
             c[0: len(self.states)] = -self.alpha
 
             G = np.repeat(np.eye(self.horizon*len(self.states)), len(self.actlist), axis = 0)
-            # Todo: instaed of using loop, using matrix.
+            # Todo: instaed of using loop, using matrix for efficiency
             for i  in  range(self.horizon-1):
                 for j in range(len(self.states)):
                     for k in range(len(self.actlist)):
@@ -95,12 +95,14 @@ class MDP:
             for j in range(len(self.states)):
                 for k in range(len(self.actlist)):
                     h[(self.horizon -1 )*len(self.states)*len(self.actlist) + j*len(self.actlist) + k] = np.exp(self.r(j, k))*np.sum(self. T(j, k)*np.exp(self.terminal_cost(j)))
-
+            # for i in range(43, 44):
+            #     print(G[i,16:32])
+            print(h[:-20])
             c = cvxopt.matrix(c)
             G = cvxopt.matrix(G)
             h = cvxopt.matrix(h)
             sol = cvxopt.solvers.lp(c, G, h, solver = 'glpk')
-            return np.array(sol['x']).reshape((self.horizon,len(self.states)))
+            return np.array(sol['x']).reshape((self.horizon, len(self.states)))
 
 def productMDP(mdp,dra):
     pmdp=MDP()

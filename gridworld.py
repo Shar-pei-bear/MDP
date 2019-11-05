@@ -94,11 +94,9 @@ class Gridworld():
         successors.append((southState, self.robotmdp.P(0,action,3)))
         successors.append((eastState, self.robotmdp.P(0,action,2)))
 
-
         for (next_state,p) in successors:
             prob[action][state,next_state]+=p
         return prob
-
 
     def rcoords(self, coords):
         s=coords[0]*self.ncols+coords[1]

@@ -253,14 +253,11 @@ class GridworldGui(Gridworld, object):
         self.screen.blit(self.surface, (0, 0))
         pygame.display.flip()
 
-    def follow(self, s, t, policy):
-        # s is the state in the mdp and t is the state in the DRA.
-        self.current = s
-        action = policy[(s, t)]
-        if type(action) == set:
-            action = random.choice(list(action))
+    def follow(self, policy):
+        action = str(np.random.choice(a=self.actlist, p=policy))
+        print(action)
         self.move(action)
-        time.sleep(0.1)
+        time.sleep(1)
 
     def move_obj(self, s, bg=True, blit=True):
 
@@ -325,27 +322,34 @@ class GridworldGui(Gridworld, object):
         self.bg_rendered = True  # don't render again unless flag is set
         self.surface.blit(self.bg, (0, 0))
 
-    def mainloop(self, dra, policy):
+    def mainloop(self):
         """
         The robot moving in the Grid world with respect to the specification in DRA.
         """
         self.screen.blit(self.surface, (0, 0))
         pygame.display.flip()
-        t = dra.get_transition(self.mdp.L[self.current], dra.initial_state)  # obtain the initial state of the dra
 
         while True:
-            self.follow(self.current, t, policy)
-            next_t = dra.get_transition(self.mdp.L[self.current], t)
-            t = next_t
-            print "The state in the DRA is {}".format(t)
-            # raw_input('Press Enter to continue ...')
+            for event in pygame.event.get():
+                if event.type == pgl.QUIT:
+                    sys.exit()
+                elif event.type == pgl.KEYDOWN and event.key == pgl.K_ESCAPE:
+                    sys.exit()
+                else:
+                    pass
+
+            self.mdp.update_alpha(self.current)
+            x = self.mdp.primal_linear_program()
+            policy = x[0, self.current, :] / np.sum(x[0, self.current, :])
+
+            self.follow(policy)
+            #raw_input('Press Enter to continue ...')
             if self.current in self.walls:
                 # hitting the obstacles
-                print "Hitting the walls, restarting ..."
+                #print "Hitting the walls, restarting ..."
                 # raw_input('Press Enter to restart ...')
                 self.current = self.mdp.init  # restart the game
                 print "the current state is {}".format(self.current)
-                t = dra.initial_state
                 self.state2circle(self.current)
             self.screen.blit(self.surface, (0, 0))
             pygame.display.flip()

@@ -4,6 +4,7 @@ from scipy import stats
 import numpy as np
 import cvxopt
 
+
 class MDP:
     """A Markov Decision Process, defined by an initial state,
         transition model --- the probability transition matrix, np.array
@@ -19,24 +20,26 @@ class MDP:
         tuple.  AP: a set of atomic propositions. Each proposition is
         identified by an index between 0 -N.  L: the labeling
         function, implemented as a dictionary: state: a subset of AP."""
-    def __init__(self, init=[0], actlist=[], states=[0], prob=dict([]), acc= None, gamma=1, horizon = 2, AP=set([]), L=dict([])):
-        self.init=init
-        self.actlist=actlist
-        self.states=states
-        self.acc=acc
-        self.gamma=gamma
-        self.reward=np.zeros(len(states))
-        self.reward[self.acc]  = -1
-        self.prob=prob
-        self.AP=AP
-        self.L=L
+
+    def __init__(self, init=0, actlist=[], states=[0], prob=dict([]), acc=None, gamma=1, horizon=2, AP=set([]),
+                 L=dict([])):
+        self.init = init
+        self.actlist = actlist
+        self.states = states
+        self.acc = acc
+        self.gamma = gamma
+        self.reward = np.zeros(len(states))
+        self.reward[self.acc] = -1
+        self.prob = prob
+        self.AP = AP
+        self.L = L
         self.alpha = np.zeros(len(self.states))
-        self.alpha[self.init] = 1/len(self.init)
+        self.alpha[self.init] = 1
         self.horizon = horizon
 
     def terminal_cost(self, state_index):
         "Return a numeric reward for this state."
-        return 0*state_index
+        return 0 * state_index
 
     def R(self, state_index):
         "Return a numeric reward for this state."
@@ -44,150 +47,161 @@ class MDP:
 
     def r(self, state_index, action_index):
         "Return a numeric reward for this state action pair."
-        return np.sum(self.reward*self.T(state_index, action_index))
+        return np.sum(self.reward * self.T(state_index, action_index))
 
-    def T(self,state_index, action_index):
+    def T(self, state_index, action_index):
         """Transition model.  From a state and an action, return a row in the matrix for next-state probability."""
         action = self.actlist[action_index]
-        return self.prob[action][state_index,:]
+        return self.prob[action][state_index, :]
 
-    def P(self,state, action, next_state):
+    def P(self, state, action, next_state):
         "Derived from the transition model. For a state, an action and the next_state, return the probability of this transition."
-        i=self.states.index(state)
-        j=self.states.index(next_state)
-        return self.prob[action][i,j]
+        i = self.states.index(state)
+        j = self.states.index(next_state)
+        return self.prob[action][i, j]
 
-    def actions(self,state):
-        N=len(self.states)
-        S=set([])
+    def actions(self, state):
+        N = len(self.states)
+        S = set([])
         for a in self.actlist:
-            if not np.array_equal(self.T(state,a), np.zeros(N)):
+            if not np.array_equal(self.T(state, a), np.zeros(N)):
                 S.add(a)
         return S
 
-    def labeling(self,s,A):
-        self.L[s]=A
+    def labeling(self, s, A):
+        self.L[s] = A
 
-    def sample(self, state,action, num=1):
+    def sample(self, state, action, num=1):
         """Sample the next state according to the current state, the action, and the transition probability. """
         if action not in self.actions(state):
-            return None # Todo: considering adding the sink state
-        N=len(self.states)
-        i=self.states.index(state)
-        next_index= np.random.choice(N,num, p=self.prob[action][i,:])[0] # Note that only one element is chosen from the array, which is the output by random.choice
+            return None  # Todo: considering adding the sink state
+        N = len(self.states)
+        i = self.states.index(state)
+        next_index = np.random.choice(N, num, p=self.prob[action][i, :])[
+            0]  # Note that only one element is chosen from the array, which is the output by random.choice
         return self.states[next_index]
 
     def primal_linear_program(self):
-            """
-            This function solves the primal linear program of the finite horizon risk sensitive MDP.
-            """
-            c = np.zeros(self.horizon*len(self.states))
-            c[0: len(self.states)] = -self.alpha
+        """
+        This function solves the primal linear program of the finite horizon risk sensitive MDP.
+        """
+        c = np.zeros(self.horizon * len(self.states))
+        c[0: len(self.states)] = -self.alpha
 
-            G = np.repeat(np.eye(self.horizon*len(self.states)), len(self.actlist), axis = 0)
-            # Todo: instaed of using loop, using matrix for efficiency
-            for i  in  range(self.horizon-1):
-                for j in range(len(self.states)):
-                    for k in range(len(self.actlist)):
-                        G[i*len(self.states)*len(self.actlist) + j*len(self.actlist) + k, (i + 1)*len(self.states) : (i + 2)*len(self.states) ] = -np.exp(self.r(j, k))*self. T(j, k)
-
-            h = np.zeros(self.horizon*len(self.states)*len(self.actlist))
+        G = np.repeat(np.eye(self.horizon * len(self.states)), len(self.actlist), axis=0)
+        # Todo: instaed of using loop, using matrix for efficiency
+        for i in range(self.horizon - 1):
             for j in range(len(self.states)):
                 for k in range(len(self.actlist)):
-                    h[(self.horizon -1 )*len(self.states)*len(self.actlist) + j*len(self.actlist) + k] = np.exp(self.r(j, k))*np.sum(self. T(j, k)*np.exp(self.terminal_cost(j)))
-            # for i in range(43, 44):
-            #     print(G[i,16:32])
-            print(h[:-20])
-            c = cvxopt.matrix(c)
-            G = cvxopt.matrix(G)
-            h = cvxopt.matrix(h)
-            sol = cvxopt.solvers.lp(c, G, h, solver = 'glpk')
-            return np.array(sol['x']).reshape((self.horizon, len(self.states)))
+                    G[i * len(self.states) * len(self.actlist) + j * len(self.actlist) + k,
+                        (i + 1) * len(self.states): (i + 2) * len(self.states)] = -np.exp(self.r(j, k)) * self.T(j, k)
 
-def productMDP(mdp,dra):
-    pmdp=MDP()
-    init=(mdp.init, dra.get_transition( mdp.L[mdp.init],dra.initial_state))
-    states=[]
+        h = np.zeros(self.horizon * len(self.states) * len(self.actlist))
+        for j in range(len(self.states)):
+            for k in range(len(self.actlist)):
+                h[(self.horizon - 1) * len(self.states) * len(self.actlist) + j * len(self.actlist) + k] = np.exp(
+                    self.r(j, k)) * np.sum(self.T(j, k) * np.exp(self.terminal_cost(j)))
+        # for i in range(43, 44):
+        #     print(G[i,16:32])
+        #print(h[:-20])
+        c = cvxopt.matrix(c)
+        G = cvxopt.matrix(G)
+        h = cvxopt.matrix(h)
+
+        cvxopt.solvers.options['glpk'] = {'msg_lev': 'GLP_MSG_OFF'}  # cvxopt 1.1.8
+        cvxopt.solvers.options['msg_lev'] = 'GLP_MSG_OFF'  # cvxopt 1.1.7
+        cvxopt.solvers.options['LPX_K_MSGLEV'] = 0  # previous versions
+
+        sol = cvxopt.solvers.lp(c, G, h, solver='glpk')
+        #return np.array(sol['x']).reshape((self.horizon, len(self.states)))
+        return np.array(sol['z']).reshape((self.horizon, len(self.states), len(self.actlist)))
+
+def productMDP(mdp, dra):
+    pmdp = MDP()
+    init = (mdp.init, dra.get_transition(mdp.L[mdp.init], dra.initial_state))
+    states = []
     for s in mdp.states:
         for q in dra.states:
-            states.append((s,q))
-    N=len(states)
-    pmdp.init=init
-    pmdp.actlist=list(mdp.actlist)
-    pmdp.states=list(states)
+            states.append((s, q))
+    N = len(states)
+    pmdp.init = init
+    pmdp.actlist = list(mdp.actlist)
+    pmdp.states = list(states)
     for a in pmdp.actlist:
-        pmdp.prob[a]=np.zeros((N,N))
+        pmdp.prob[a] = np.zeros((N, N))
         for i in range(N):
-            (s,q)=pmdp.states[i]
+            (s, q) = pmdp.states[i]
 
-            pmdp.L[(s,q)]=mdp.L[s]
+            pmdp.L[(s, q)] = mdp.L[s]
             for j in range(N):
-                (next_s,next_q)=pmdp.states[j]
-                if next_q == dra.get_transition(mdp.L[next_s],q):
-                    p=mdp.P(s,a,next_s)
-                    pmdp.prob[a][i,j]= p
-    mdp_acc=[]
-    for (J,K) in dra.acc:
-        Jmdp=set([])
-        Kmdp=set([])
+                (next_s, next_q) = pmdp.states[j]
+                if next_q == dra.get_transition(mdp.L[next_s], q):
+                    p = mdp.P(s, a, next_s)
+                    pmdp.prob[a][i, j] = p
+    mdp_acc = []
+    for (J, K) in dra.acc:
+        Jmdp = set([])
+        Kmdp = set([])
         for s in states:
             if s[1] in J:
                 Jmdp.add(s)
             if s[1] in K:
                 Kmdp.add(s)
-        mdp_acc.append((Jmdp,Kmdp))
-    pmdp.acc=mdp_acc
+        mdp_acc.append((Jmdp, Kmdp))
+    pmdp.acc = mdp_acc
     return pmdp
+
 
 def get_NFA(mdp):
     """
     This function obtains the graph structure, which is essentially an non-deterministic finite state automaton from the original mdp.
     """
-    nfa=NFA()
-    nfa.initial_state=mdp.init
-    nfa.states=mdp.states
-    nfa.alphabet=mdp.actlist
+    nfa = NFA()
+    nfa.initial_state = mdp.init
+    nfa.states = mdp.states
+    nfa.alphabet = mdp.actlist
     for a in mdp.actlist:
         for s in mdp.states:
-            next_state_list=[]
+            next_state_list = []
             for next_s in mdp.states:
                 if mdp.prob[a][mdp.states.index(s), mdp.states.index(next_s)] != 0:
                     next_state_list.append(next_s)
-            nfa.add_transition(a,s, next_state_list)
-    nfa.final_states=mdp.terminals
+            nfa.add_transition(a, s, next_state_list)
+    nfa.final_states = mdp.terminals
     return nfa
 
-def sub_MDP(mdp,H):
+
+def sub_MDP(mdp, H):
     """
     For a given MDP and a subset of the states H, construct a sub-mdp
     that only includes the set of states in H, and a sink states for
     all transitions to and from a state outside H.
     """
-    if H == set(mdp.states): # If H is the set of states in mdp, return mdp as it is.
+    if H == set(mdp.states):  # If H is the set of states in mdp, return mdp as it is.
         return mdp
-    submdp=MDP()
-    submdp.states=list(H)
-    submdp.states.append(-1) # -1 is the sink state.
-    N=len(submdp.states)
-    submdp.actlist=list(mdp.actlist)
-    submdp.prob={a:np.zeros((N,N)) for a in submdp.actlist}
-    temp=np.zeros(len(mdp.states))
+    submdp = MDP()
+    submdp.states = list(H)
+    submdp.states.append(-1)  # -1 is the sink state.
+    N = len(submdp.states)
+    submdp.actlist = list(mdp.actlist)
+    submdp.prob = {a: np.zeros((N, N)) for a in submdp.actlist}
+    temp = np.zeros(len(mdp.states))
     for k in set(mdp.states) - H:
-        temp[mdp.states.index(k)]=1
+        temp[mdp.states.index(k)] = 1
     for a in submdp.actlist:
-        for s in H: # except the last sink state.
-            i=submdp.states.index(s)
+        for s in H:  # except the last sink state.
+            i = submdp.states.index(s)
             for next_s in H:
-                j=submdp.states.index(next_s)
-                submdp.prob[a][i,j] = mdp.P(s,a,next_s)
-            submdp.prob[a][i,-1]= np.inner(mdp.T(s,a), temp)
-        submdp.prob[a][submdp.states.index(-1), submdp.states.index(-1)]=1
-    acc=[]
-    for (J,K) in mdp.acc:
+                j = submdp.states.index(next_s)
+                submdp.prob[a][i, j] = mdp.P(s, a, next_s)
+            submdp.prob[a][i, -1] = np.inner(mdp.T(s, a), temp)
+        submdp.prob[a][submdp.states.index(-1), submdp.states.index(-1)] = 1
+    acc = []
+    for (J, K) in mdp.acc:
         Jsub = set(H).intersection(J)
         Ksub = set(H).intersection(K)
-        acc.append((Jsub,Ksub))
-    acc.append(({},{-1}))
+        acc.append((Jsub, Ksub))
+    acc.append(({}, {-1}))
     submdp.acc = acc
     return submdp
 
@@ -200,25 +214,25 @@ def read_from_file_MDP(fname):
     Starting from the second line, we have
     state, action, next_state, probability
     """
-    f=open(fname,'r')
+    f = open(fname, 'r')
     array = []
     for line in f:
-        array.append( line.strip('\n') )
+        array.append(line.strip('\n'))
     f.close()
-    mdp=MDP()
-    state_str=array[0].split(",")
-    mdp.states=[int(i) for i in state_str]
-    act_str=array[1].split(",")
-    mdp.actlist=act_str
-    mdp.prob=dict([])
-    N=len(mdp.states)
+    mdp = MDP()
+    state_str = array[0].split(",")
+    mdp.states = [int(i) for i in state_str]
+    act_str = array[1].split(",")
+    mdp.actlist = act_str
+    mdp.prob = dict([])
+    N = len(mdp.states)
     for a in mdp.actlist:
-        mdp.prob[a]=np.zeros((N,N))
+        mdp.prob[a] = np.zeros((N, N))
     for line in array[2: len(array)]:
-        trans_str=line.split(",")
-        state=int(trans_str[0])
-        act=trans_str[1]
-        next_state=int(trans_str[2])
-        p=float(trans_str[3])
-        mdp.prob[act][mdp.states.index(state),mdp.states.index(next_state)]=p
+        trans_str = line.split(",")
+        state = int(trans_str[0])
+        act = trans_str[1]
+        next_state = int(trans_str[2])
+        p = float(trans_str[3])
+        mdp.prob[act][mdp.states.index(state), mdp.states.index(next_state)] = p
     return mdp

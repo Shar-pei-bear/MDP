@@ -21,7 +21,7 @@ class MDP:
         identified by an index between 0 -N.  L: the labeling
         function, implemented as a dictionary: state: a subset of AP."""
 
-    def __init__(self, init=0, actlist=[], states=[0], prob=dict([]), acc=None, gamma=1, horizon=2, AP=set([]),
+    def __init__(self, init=0, actlist=[], states=[0], prob=dict([]), acc=None, gamma=1, horizon=8, AP=set([]),
                  L=dict([])):
         self.init = init
         self.actlist = actlist

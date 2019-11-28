@@ -254,6 +254,7 @@ class GridworldGui(Gridworld, object):
         pygame.display.flip()
 
     def follow(self, policy):
+        print(policy)
         action = str(np.random.choice(a=self.actlist, p=policy))
         print(action)
         self.move(action)
@@ -340,8 +341,9 @@ class GridworldGui(Gridworld, object):
 
             self.mdp.update_alpha(self.current)
             x = self.mdp.primal_linear_program()
-            policy = x[0, self.current, :] / np.sum(x[0, self.current, :])
 
+            policy = x[0, self.current, :] / np.sum(x[0, self.current, :])
+            policy[policy < 0] = 0
             self.follow(policy)
             #raw_input('Press Enter to continue ...')
             if self.current in self.walls:

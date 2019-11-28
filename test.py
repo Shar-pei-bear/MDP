@@ -1,15 +1,16 @@
 from gridworld import *
 
 # targets=[22,62,41]
-targets = [5]
+targets = [9]
+#obstacles = [11, 13, 17, 19, 27, 49]
 obstacles = []
-initial = 10
-ncols = 4
-nrows = 4
+initial = 54
+ncols = 8
+nrows = 8
 robotmdp = read_from_file_MDP('robotmdp.txt')
 gwg = GridworldGui(initial, ncols, nrows, robotmdp, targets, obstacles)
 #print(gwg.mdp.prob)
-# raw_input("Waiting...")
+raw_input("Waiting...")
 gwg.mainloop()
 # x = gwg.mdp.primal_linear_program()
 

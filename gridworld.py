@@ -66,7 +66,11 @@ class Gridworld():
         for s in range(self.nstates):
             for a in self.actlist:
                 prob = self.getProbs(s, a, prob)
-        self.mdp = MDP(current, self.actlist, range(self.nstates), acc=self.targets)
+        horizon = self.ncols + self.nrows - 6
+        self.target_index = 0
+        self.current_target = self.targets[self.target_index]
+        self.mdp = MDP(current, self.actlist, range(self.nstates), acc=self.current_target, obstacles=obstacles,
+                       horizon=horizon)
         self.mdp.prob = prob
 
     def coords(self, s):
@@ -254,11 +258,11 @@ class GridworldGui(Gridworld, object):
         pygame.display.flip()
 
     def follow(self, policy):
-        print(policy)
+        #print(policy)
         action = str(np.random.choice(a=self.actlist, p=policy))
         print(action)
         self.move(action)
-        time.sleep(1)
+        #time.sleep(1)
 
     def move_obj(self, s, bg=True, blit=True):
 
@@ -271,7 +275,11 @@ class GridworldGui(Gridworld, object):
         """
         if bg:
             self.background()
-        next_s = choice(self.accessible_blocks(s))
+        next_s_list = self.accessible_blocks(s)
+        next_s_list.append(s)
+        p = np.ones(len(next_s_list))*0.1/(len(next_s_list) - 1.0)
+        p[-1] = 0.9
+        next_s = np.random.choice(a=next_s_list, p=p)
         x, y = self.indx2coord(next_s, center=True)
         pygame.draw.circle(self.surface, (205, 92, 0), (y, x), self.size / 2)
 
@@ -339,6 +347,13 @@ class GridworldGui(Gridworld, object):
                 else:
                     pass
 
+            if self.current == self.current_target and self.target_index < (len(self.targets) - 1):
+                print "reached ", self.target_index + 1, " goal"
+                self.target_index = self.target_index + 1
+                self.current_target = self.targets[self.target_index]
+
+            self.current_target = self.move_obj(self.current_target, bg=False)
+            self.mdp.update_reward(self.current_target)
             self.mdp.update_alpha(self.current)
             x = self.mdp.primal_linear_program()
 
@@ -348,9 +363,11 @@ class GridworldGui(Gridworld, object):
             #raw_input('Press Enter to continue ...')
             if self.current in self.walls:
                 # hitting the obstacles
-                #print "Hitting the walls, restarting ..."
+                print "Hitting the walls, restarting ..."
                 # raw_input('Press Enter to restart ...')
                 self.current = self.mdp.init  # restart the game
+                self.target_index = 0
+                self.current_target = self.targets[self.target_index]
                 print "the current state is {}".format(self.current)
                 self.state2circle(self.current)
             self.screen.blit(self.surface, (0, 0))

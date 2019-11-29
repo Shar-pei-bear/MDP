@@ -21,15 +21,18 @@ class MDP:
         identified by an index between 0 -N.  L: the labeling
         function, implemented as a dictionary: state: a subset of AP."""
 
-    def __init__(self, init=0, actlist=[], states=[0], prob=dict([]), acc=None, gamma=1, horizon=8, AP=set([]),
+    def __init__(self, init=0, actlist=[], states=[0], prob=dict([]), acc=None, obstacles=[], gamma=1, horizon=1, AP=set([]),
                  L=dict([])):
         self.init = init
         self.actlist = actlist
         self.states = states
         self.acc = acc
+        self.obstacles = obstacles
         self.gamma = gamma
         self.reward = np.zeros(len(states))
         self.reward[self.acc] = -1
+        if len(self.obstacles) > 0:
+            self.reward[self.obstacles] = 0.03
         self.prob = prob
         self.AP = AP
         self.L = L
@@ -83,6 +86,13 @@ class MDP:
     def update_alpha(self, current):
         self.alpha = np.zeros(len(self.states))
         self.alpha[current] = 1
+
+    def update_reward(self, new_acc):
+        # change the previous reward to zero.
+        self.reward[self.acc] = 0
+        self.acc = new_acc
+        # set the new reward to be -1.
+        self.reward[self.acc] = -1
 
     def primal_linear_program(self):
         """

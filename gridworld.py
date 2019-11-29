@@ -78,7 +78,7 @@ class Gridworld():
 
         self.mdp = MDP(current, self.actlist, range(self.nstates),
                        acc=self.current_target_path[self.path_index:self.path_index+self.horizon], obstacles=obstacles,
-                       horizon=self.horizon)
+                       horizon=self.horizon, ncols=self.ncols, nrows=nrows)
         self.mdp.prob = prob
 
     def coords(self, s):

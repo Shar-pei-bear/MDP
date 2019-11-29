@@ -22,7 +22,7 @@ class MDP:
         function, implemented as a dictionary: state: a subset of AP."""
 
     def __init__(self, init=0, actlist=[], states=[0], prob=dict([]), acc=None, obstacles=[], gamma=1, horizon=1, AP=set([]),
-                 L=dict([])):
+                 ncols=0, nrows=0, L=dict([])):
         self.init = init
         self.actlist = actlist
         self.states = states
@@ -31,6 +31,8 @@ class MDP:
         self.gamma = gamma
         self.prob = prob
         self.AP = AP
+        self.ncols = ncols
+        self.nrows = nrows
         self.L = L
         self.alpha = np.zeros(len(self.states))
         self.update_alpha(self.init)
@@ -40,7 +42,15 @@ class MDP:
 
     def terminal_cost(self, state_index):
         "Return a numeric reward for this state."
+
+        x_goal, y_goal = self.coords(self.acc[-1])
+        x, y = self.coords(state_index)
+        manhattan_distance = abs(x_goal-x) + abs(y_goal - y) + 1.0
+        #return -1.0/manhattan_distance
         return 0 * state_index
+
+    def coords(self, state_index):
+        return state_index / self.nrows, state_index % self.nrows  # the coordinate for state s.
 
     def R(self, state_index, time_index):
         "Return a numeric reward for this state."

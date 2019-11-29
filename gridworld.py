@@ -36,7 +36,7 @@ def wall_pattern(nrows, ncols, endstate=0, pattern="comb"):
 
 
 class Gridworld():
-    def __init__(self, current=0, nrows=8, ncols=8, robotmdp=MDP(), targets=[], obstacles=[]):
+    def __init__(self, current=0, nrows=8, ncols=8, robotmdp=MDP(), targets=[], targets_path=[[]], obstacles=[]):
         # walls are the obstacles. The edges of the gridworld will be included into the walls.
         self.nrows = nrows
         self.ncols = ncols
@@ -45,6 +45,7 @@ class Gridworld():
         self.actlist = robotmdp.actlist
         self.nactions = len(self.actlist)
         self.targets = targets
+        self.targets_path = targets_path
         self.left_edge = []
         self.right_edge = []
         self.top_edge = []
@@ -66,11 +67,18 @@ class Gridworld():
         for s in range(self.nstates):
             for a in self.actlist:
                 prob = self.getProbs(s, a, prob)
-        horizon = self.ncols + self.nrows - 6
+
+        self.horizon = self.ncols + self.nrows - 6
+
         self.target_index = 0
+        self.path_index = 0
+
         self.current_target = self.targets[self.target_index]
-        self.mdp = MDP(current, self.actlist, range(self.nstates), acc=self.current_target, obstacles=obstacles,
-                       horizon=horizon)
+        self.current_target_path = self.targets_path[self.target_index]
+
+        self.mdp = MDP(current, self.actlist, range(self.nstates),
+                       acc=self.current_target_path[self.path_index:self.path_index+self.horizon], obstacles=obstacles,
+                       horizon=self.horizon)
         self.mdp.prob = prob
 
     def coords(self, s):
@@ -111,8 +119,8 @@ class Gridworld():
 
 
 class GridworldGui(Gridworld, object):
-    def __init__(self, initial, nrows=8, ncols=8, robotmdp=MDP(), targets=[], obstacles=[], size=16):
-        super(GridworldGui, self).__init__(initial, nrows, ncols, robotmdp, targets, obstacles)
+    def __init__(self, initial, nrows=8, ncols=8, robotmdp=MDP(), targets=[], targets_path=[[]], obstacles=[], size=16):
+        super(GridworldGui, self).__init__(initial, nrows, ncols, robotmdp, targets, targets_path, obstacles)
         # compute the appropriate height and width (with room for cell borders)
         self.height = nrows * size + nrows + 1
         self.width = ncols * size + ncols + 1
@@ -264,7 +272,7 @@ class GridworldGui(Gridworld, object):
         self.move(action)
         #time.sleep(1)
 
-    def move_obj(self, s, bg=True, blit=True):
+    def move_obj(self, s, bg=True, blit=True, random_walk=True, next_state=[]):
 
         """Including A moving object into the gridworld, which moves uniformly at
         random in all accessible directions (including idle), without
@@ -275,11 +283,16 @@ class GridworldGui(Gridworld, object):
         """
         if bg:
             self.background()
-        next_s_list = self.accessible_blocks(s)
-        next_s_list.append(s)
-        p = np.ones(len(next_s_list))*0.1/(len(next_s_list) - 1.0)
-        p[-1] = 0.9
-        next_s = np.random.choice(a=next_s_list, p=p)
+
+        if random_walk:
+            next_s_list = self.accessible_blocks(s)
+            next_s_list.append(s)
+            p = np.ones(len(next_s_list))*0.5/(len(next_s_list) - 1.0)
+            p[-1] = 0.5
+            next_s = np.random.choice(a=next_s_list, p=p)
+        else:
+            next_s = next_state
+
         x, y = self.indx2coord(next_s, center=True)
         pygame.draw.circle(self.surface, (205, 92, 0), (y, x), self.size / 2)
 
@@ -311,10 +324,10 @@ class GridworldGui(Gridworld, object):
                 coords = pygame.Rect(y, x, self.size, self.size)
                 pygame.draw.rect(self.bg, ((250, 250, 250)), coords)
 
-            for t in self.targets:
-                x, y = self.indx2coord(t, center=True)
-                coords = pygame.Rect(y - self.size / 2, x - self.size / 2, self.size, self.size)
-                pygame.draw.rect(self.bg, (0, 204, 102), coords)
+            # for t in self.targets:
+            #     x, y = self.indx2coord(t, center=True)
+            #     coords = pygame.Rect(y - self.size / 2, x - self.size / 2, self.size, self.size)
+            #     pygame.draw.rect(self.bg, (0, 204, 102), coords)
 
                 # Draw Wall in black color.
             for s in self.edges:
@@ -337,12 +350,14 @@ class GridworldGui(Gridworld, object):
         """
         self.screen.blit(self.surface, (0, 0))
         pygame.display.flip()
-
+        target_path = []
         while True:
             for event in pygame.event.get():
                 if event.type == pgl.QUIT:
+                    print(target_path)
                     sys.exit()
                 elif event.type == pgl.KEYDOWN and event.key == pgl.K_ESCAPE:
+                    print(target_path)
                     sys.exit()
                 else:
                     pass
@@ -350,10 +365,17 @@ class GridworldGui(Gridworld, object):
             if self.current == self.current_target and self.target_index < (len(self.targets) - 1):
                 print "reached ", self.target_index + 1, " goal"
                 self.target_index = self.target_index + 1
+                self.path_index = 0
                 self.current_target = self.targets[self.target_index]
+                self.current_target_path = self.targets_path[self.target_index]
 
-            self.current_target = self.move_obj(self.current_target, bg=False)
-            self.mdp.update_reward(self.current_target)
+            self.current_target = self.move_obj(self.current_target, bg=False, random_walk=False,
+                                                next_state=self.current_target_path[self.path_index])
+
+            if self.path_index < len(self.current_target_path) - 1 - self.horizon:
+                self.path_index = self.path_index + 1
+            target_path.append(self.current_target)
+            self.mdp.update_reward(self.current_target_path[self.path_index:self.path_index + self.horizon])
             self.mdp.update_alpha(self.current)
             x = self.mdp.primal_linear_program()
 
@@ -367,7 +389,10 @@ class GridworldGui(Gridworld, object):
                 # raw_input('Press Enter to restart ...')
                 self.current = self.mdp.init  # restart the game
                 self.target_index = 0
+                self.path_index = 0
                 self.current_target = self.targets[self.target_index]
+                self.current_target_path = self.targets_path[self.target_index]
+                target_path = []
                 print "the current state is {}".format(self.current)
                 self.state2circle(self.current)
             self.screen.blit(self.surface, (0, 0))

@@ -29,28 +29,26 @@ class MDP:
         self.acc = acc
         self.obstacles = obstacles
         self.gamma = gamma
-        self.reward = np.zeros(len(states))
-        self.reward[self.acc] = -1
-        if len(self.obstacles) > 0:
-            self.reward[self.obstacles] = 0.03
         self.prob = prob
         self.AP = AP
         self.L = L
         self.alpha = np.zeros(len(self.states))
         self.update_alpha(self.init)
         self.horizon = horizon
+        self.reward = np.zeros([len(self.states), self.horizon])
+        self.update_reward(acc)
 
     def terminal_cost(self, state_index):
         "Return a numeric reward for this state."
         return 0 * state_index
 
-    def R(self, state_index):
+    def R(self, state_index, time_index):
         "Return a numeric reward for this state."
-        return self.reward[state_index]
+        return self.reward[state_index, time_index]
 
-    def r(self, state_index, action):
+    def r(self, state_index, action, time_index):
         "Return a numeric reward for this state action pair."
-        return np.sum(self.reward * self.T(state_index, action))
+        return np.sum(self.reward[:, time_index] * self.T(state_index, action))
 
     def T(self, state_index, action):
         """Transition model.  From a state and an action, return a row in the matrix for next-state probability."""
@@ -88,11 +86,17 @@ class MDP:
         self.alpha[current] = 1
 
     def update_reward(self, new_acc):
-        # change the previous reward to zero.
-        self.reward[self.acc] = 0
+        # update reward according to the new acceptance set.
+
+        self.reward = 0*self.reward
         self.acc = new_acc
-        # set the new reward to be -1.
-        self.reward[self.acc] = -1
+        if len(self.reward[self.acc]) == 1:
+            self.reward[self.acc] = -1
+        elif len(self.reward[self.acc]) == self.horizon:
+            for i in range(self.horizon):
+                self.reward[self.acc[i], i] = -1
+        if len(self.obstacles) > 0:
+            self.reward[self.obstacles] = 0.03
 
     def primal_linear_program(self):
         """
@@ -108,14 +112,14 @@ class MDP:
                 for k in range(len(self.actlist)):
                     action = self.actlist[k]
                     G[i * len(self.states) * len(self.actlist) + j * len(self.actlist) + k,
-                        (i + 1) * len(self.states): (i + 2) * len(self.states)] = -np.exp(self.r(j, action)) * self.T(j, action)
+                        (i + 1) * len(self.states): (i + 2) * len(self.states)] = -np.exp(self.r(j, action, i)) * self.T(j, action)
 
         h = np.zeros(self.horizon * len(self.states) * len(self.actlist))
         for j in range(len(self.states)):
             for k in range(len(self.actlist)):
                 action = self.actlist[k]
                 h[(self.horizon - 1) * len(self.states) * len(self.actlist) + j * len(self.actlist) + k] = np.exp(
-                    self.r(j, action)) * np.sum(self.T(j, action) * np.exp(self.terminal_cost(j)))
+                    self.r(j, action, self.horizon - 1)) * np.sum(self.T(j, action) * np.exp(self.terminal_cost(j)))
         # for i in range(43, 44):
         #     print(G[i,16:32])
         #print(h[:-20])

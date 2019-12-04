@@ -21,7 +21,7 @@ class MDP:
         identified by an index between 0 -N.  L: the labeling
         function, implemented as a dictionary: state: a subset of AP."""
 
-    def __init__(self, init=0, actlist=[], states=[0], prob=dict([]), acc=None, obstacles=[], gamma=1, horizon=1, AP=set([]),
+    def __init__(self, init=0, actlist=[], states=[0], prob=dict([]), acc=[], obstacles=[], gamma=1, horizon=1, AP=set([]),
                  ncols=0, nrows=0, L=dict([])):
         self.init = init
         self.actlist = actlist
@@ -42,8 +42,10 @@ class MDP:
 
     def terminal_cost(self, state_index):
         "Return a numeric reward for this state."
-
-        x_goal, y_goal = self.coords(self.acc[-1])
+        if type(self.acc) == int:
+            x_goal, y_goal = self.coords(self.acc)
+        else:
+            x_goal, y_goal = self.coords(self.acc[-1])
         x, y = self.coords(state_index)
         manhattan_distance = abs(x_goal-x) + abs(y_goal - y) + 1.0
         #return -1.0/manhattan_distance
@@ -100,9 +102,11 @@ class MDP:
 
         self.reward = 0*self.reward
         self.acc = new_acc
-        if len(self.reward[self.acc]) == 1:
+
+        if type(self.acc) == int:
             self.reward[self.acc] = -1
-        elif len(self.reward[self.acc]) == self.horizon:
+        elif len(self.acc) == self.horizon:
+            print len(self.acc)
             for i in range(self.horizon):
                 self.reward[self.acc[i], i] = -1
         if len(self.obstacles) > 0:

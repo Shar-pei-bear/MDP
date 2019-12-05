@@ -11,15 +11,26 @@ ncols = 8
 nrows = 10
 robotmdp = read_from_file_MDP('robotmdp.txt')
 gw = Gridworld(initial, ncols, nrows, robotmdp, targets, targets_path, obstacles)
-x = gw.mdp.primal_linear_program()
-policies = np.argmax(x, axis=2)
-expected_costs = 0
+
 terminal_cost = np.zeros(len(gw.mdp.states))
-ut = np.zeros([gw.mdp.horizon, len(gw.mdp.states)])
+
+static_policies = np.load('static_policies.npy')
+dynamic_policies = np.load('dynamic_policies.npy')
+
+static_costs = np.zeros([gw.mdp.horizon + 1, len(gw.mdp.states)])
+dynamic_costs = np.zeros([gw.mdp.horizon + 1, len(gw.mdp.states)])
+
+# terminal cost is set to zero
+dynamic_costs[-1, :] = 0
+static_costs[-1, :] = 0
+
+gw.mdp.update_reward(targets_path[0][0:gw.mdp.horizon])
+
 for time_index in reversed(range(gw.mdp.horizon)):
-    instant_costs = np.zeros(len(gw.mdp.states))
     for state_index in range(len(gw.mdp.states)):
-        action = gw.mdp.actlist[policies[time_index, state_index]]
-        instant_costs[state_index] = np.sum(gw.mdp.reward[:, time_index] * gw.mdp.T(state_index, action))
-
-
+        static_action = gw.mdp.actlist[static_policies[time_index, state_index]]
+        dynamic_action = gw.mdp.actlist[dynamic_policies[time_index, state_index]]
+        dynamic_costs[state_index, time_index] = gw.mdp.r(state_index, dynamic_action, time_index) + np.log(
+            np.sum(self.reward[:, time_index] * self.T(state_index, action)))
+        static_costs[state_index, time_index] = gw.mdp.r(state_index, static_action, time_index) + np.log(
+            np.sum(self.reward[:, time_index] * self.T(state_index, action)))

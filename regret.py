@@ -12,4 +12,14 @@ nrows = 10
 robotmdp = read_from_file_MDP('robotmdp.txt')
 gw = Gridworld(initial, ncols, nrows, robotmdp, targets, targets_path, obstacles)
 x = gw.mdp.primal_linear_program()
-print(x.shape)
+policies = np.argmax(x, axis=2)
+expected_costs = 0
+terminal_cost = np.zeros(len(gw.mdp.states))
+ut = np.zeros([gw.mdp.horizon, len(gw.mdp.states)])
+for time_index in reversed(range(gw.mdp.horizon)):
+    instant_costs = np.zeros(len(gw.mdp.states))
+    for state_index in range(len(gw.mdp.states)):
+        action = gw.mdp.actlist[policies[time_index, state_index]]
+        instant_costs[state_index] = np.sum(gw.mdp.reward[:, time_index] * gw.mdp.T(state_index, action))
+
+

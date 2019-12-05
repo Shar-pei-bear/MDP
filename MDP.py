@@ -106,7 +106,7 @@ class MDP:
         if type(self.acc) == int:
             self.reward[self.acc] = -1
         elif len(self.acc) == self.horizon:
-            print len(self.acc)
+            #print len(self.acc)
             for i in range(self.horizon):
                 self.reward[self.acc[i], i] = -1
         if len(self.obstacles) > 0:

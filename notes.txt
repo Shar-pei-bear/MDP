@@ -1,0 +1,35 @@
+N
+W
+W
+W
+S
+E
+S
+W
+W
+W
+N
+S
+W
+N
+N
+W
+N
+N
+E
+
+19 steps
+
+N
+N
+W
+W
+W
+W
+S
+N
+W
+
+9 steps
+
+

@@ -14,6 +14,8 @@ ncols = 8
 nrows = 10
 robotmdp = read_from_file_MDP('robotmdp.txt')
 gwg = GridworldGui(initial, ncols, nrows, robotmdp, targets, targets_path, obstacles)
+
+#self.T(state_index, action)
 #print(gwg.mdp.prob)
 #raw_input("Waiting...")
 gwg.mainloop()

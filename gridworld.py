@@ -76,12 +76,12 @@ class Gridworld():
         self.current_target = self.targets[self.target_index]
         self.current_target_path = self.targets_path[self.target_index]
 
-        # self.mdp = MDP(current, self.actlist, range(self.nstates),
-        #                acc=self.current_target_path[self.path_index:self.path_index+self.horizon], obstacles=obstacles,
-        #                horizon=self.horizon, ncols=self.ncols, nrows=nrows)
         self.mdp = MDP(current, self.actlist, range(self.nstates),
-                       acc=self.current_target, obstacles=obstacles,
+                       acc=self.current_target_path[self.path_index:self.path_index+self.horizon], obstacles=obstacles,
                        horizon=self.horizon, ncols=self.ncols, nrows=nrows)
+        # self.mdp = MDP(current, self.actlist, range(self.nstates),
+        #                acc=self.current_target, obstacles=obstacles,
+        #                horizon=self.horizon, ncols=self.ncols, nrows=nrows)
         self.mdp.prob = prob
 
     def coords(self, s):
@@ -297,7 +297,7 @@ class GridworldGui(Gridworld, object):
             next_s = next_state
 
         x, y = self.indx2coord(next_s, center=True)
-        pygame.draw.circle(self.surface, (205, 92, 0), (y, x), self.size / 2)
+        pygame.draw.circle(self.surface, (0, 204, 102), (y, x), self.size / 2)
 
         if blit:
             self.screen.blit(self.surface, (0, 0))
@@ -327,10 +327,10 @@ class GridworldGui(Gridworld, object):
                 coords = pygame.Rect(y, x, self.size, self.size)
                 pygame.draw.rect(self.bg, ((250, 250, 250)), coords)
 
-            for t in self.targets:
-                x, y = self.indx2coord(t, center=True)
-                coords = pygame.Rect(y - self.size / 2, x - self.size / 2, self.size, self.size)
-                pygame.draw.rect(self.bg, (0, 204, 102), coords)
+            # for t in self.targets:
+            #     x, y = self.indx2coord(t, center=True)
+            #     coords = pygame.Rect(y - self.size / 2, x - self.size / 2, self.size, self.size)
+            #     pygame.draw.rect(self.bg, (0, 204, 102), coords)
 
                 # Draw Wall in black color.
             for s in self.edges:
@@ -365,21 +365,22 @@ class GridworldGui(Gridworld, object):
                 else:
                     pass
 
-            if self.current == self.current_target and self.target_index < (len(self.targets) - 1):
+            if self.current == self.current_target:
                 print "reached ", self.target_index + 1, " goal"
-                self.target_index = self.target_index + 1
-                self.path_index = 0
-                self.current_target = self.targets[self.target_index]
-                #self.current_target_path = self.targets_path[self.target_index]
+                if self.target_index < (len(self.targets) - 1):
+                    self.target_index = self.target_index + 1
+                    self.path_index = 0
+                    self.current_target = self.targets[self.target_index]
+                    self.current_target_path = self.targets_path[self.target_index]
 
-            # self.current_target = self.move_obj(self.current_target, bg=False, random_walk=False,
-            #                                     next_state=self.current_target_path[self.path_index])
+            self.current_target = self.move_obj(self.current_target, bg=False, random_walk=False,
+                                                next_state=self.current_target_path[self.path_index])
 
             if self.path_index < len(self.current_target_path) - 1 - self.horizon:
                 self.path_index = self.path_index + 1
             target_path.append(self.current_target)
-            # self.mdp.update_reward(self.current_target_path[self.path_index:self.path_index + self.horizon])
-            self.mdp.update_reward(self.current_target)
+            self.mdp.update_reward(self.current_target_path[self.path_index:self.path_index + self.horizon])
+            #self.mdp.update_reward(self.current_target)
             self.mdp.update_alpha(self.current)
             x = self.mdp.primal_linear_program()
 

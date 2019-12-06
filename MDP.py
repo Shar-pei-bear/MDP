@@ -146,8 +146,8 @@ class MDP:
         cvxopt.solvers.options['LPX_K_MSGLEV'] = 0  # previous versions
 
         sol = cvxopt.solvers.lp(c, G, h, solver='glpk')
-        #return np.array(sol['x']).reshape((self.horizon, len(self.states)))
-        return np.array(sol['z']).reshape((self.horizon, len(self.states), len(self.actlist)))
+        return np.array(sol['x']).reshape((self.horizon, len(self.states)))
+        #return np.array(sol['z']).reshape((self.horizon, len(self.states), len(self.actlist)))
 
 def productMDP(mdp, dra):
     pmdp = MDP()

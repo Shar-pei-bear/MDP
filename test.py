@@ -17,8 +17,8 @@ gwg = GridworldGui(initial, ncols, nrows, robotmdp, targets, targets_path, obsta
 
 #self.T(state_index, action)
 #print(gwg.mdp.prob)
-raw_input("Waiting...")
-#gwg.mainloop()
+#raw_input("Waiting...")
+gwg.mainloop()
 # x = gwg.mdp.primal_linear_program()
 
 # policy = x[0, initial, :] / np.sum(x[0, initial, :])

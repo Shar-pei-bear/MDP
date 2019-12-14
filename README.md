@@ -6,6 +6,10 @@ https://github.com/Shar-pei-bear/MDP
 
 The code is not very organized at the moment, comment/uncomment is required to run different setting.
 
+## Dependency 
+CVXOPT with GLPK is required, install instruction can be found here:
+https://scaron.info/blog/linear-programming-in-python-with-cvxopt.html
+
 ## Dynamic goal with optimal policy
 simply run test.py
 

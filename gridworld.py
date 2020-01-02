@@ -36,7 +36,7 @@ def wall_pattern(nrows, ncols, endstate=0, pattern="comb"):
 
 
 class Gridworld():
-    def __init__(self, current=0, nrows=8, ncols=8, robotmdp=MDP(), targets=[], targets_path=[[]], obstacles=[]):
+    def __init__(self, current=0, nrows=8, ncols=8, robotmdp=MDP(), targets_path=[[]], obstacles=[], task_type='sequential'):
         # walls are the obstacles. The edges of the gridworld will be included into the walls.
         self.nrows = nrows
         self.ncols = ncols
@@ -44,8 +44,7 @@ class Gridworld():
         self.nstates = nrows * ncols
         self.actlist = robotmdp.actlist
         self.nactions = len(self.actlist)
-        self.targets = targets
-        self.targets_path = targets_path
+        self.targets_path = np.asarray(targets_path)
         self.left_edge = []
         self.right_edge = []
         self.top_edge = []
@@ -71,17 +70,21 @@ class Gridworld():
         self.horizon = self.ncols + self.nrows - 6
 
         self.target_index = 0
-        self.path_index = 0
+        self.time_index = 0
 
-        self.current_target = self.targets[self.target_index]
-        self.current_target_path = self.targets_path[self.target_index]
+        acc = []
+        self.task_type = task_type
+
+        if self.task_type =='sequential':
+            acc = self.targets_path[self.target_index, self.time_index:self.time_index+self.horizon]
+        elif self.task_type == 'disjunction':
+            acc = self.targets_path[:, self.time_index:self.time_index+self.horizon]
+        self.targets = self.targets_path[:, self.time_index]
 
         self.mdp = MDP(current, self.actlist, range(self.nstates),
-                       acc=self.current_target_path[self.path_index:self.path_index+self.horizon], obstacles=obstacles,
+                       acc=acc, obstacles=obstacles,
                        horizon=self.horizon, ncols=self.ncols, nrows=nrows)
-        # self.mdp = MDP(current, self.actlist, range(self.nstates),
-        #                acc=self.current_target, obstacles=obstacles,
-        #                horizon=self.horizon, ncols=self.ncols, nrows=nrows)
+
         self.mdp.prob = prob
 
     def coords(self, s):
@@ -122,9 +125,10 @@ class Gridworld():
 
 
 class GridworldGui(Gridworld, object):
-    def __init__(self, initial, nrows=8, ncols=8, robotmdp=MDP(), targets=[], targets_path=[[]], obstacles=[], size=16):
-        super(GridworldGui, self).__init__(initial, nrows, ncols, robotmdp, targets, targets_path, obstacles)
+    def __init__(self, initial, nrows=8, ncols=8, robotmdp=MDP(), targets_path=[[]], obstacles=[], size=16, task_type='sequential'):
+        super(GridworldGui, self).__init__(initial, nrows, ncols, robotmdp, targets_path, obstacles, task_type)
         # compute the appropriate height and width (with room for cell borders)
+
         self.height = nrows * size + nrows + 1
         self.width = ncols * size + ncols + 1
         self.size = size
@@ -327,10 +331,15 @@ class GridworldGui(Gridworld, object):
                 coords = pygame.Rect(y, x, self.size, self.size)
                 pygame.draw.rect(self.bg, ((250, 250, 250)), coords)
 
-            # for t in self.targets:
-            #     x, y = self.indx2coord(t, center=True)
-            #     coords = pygame.Rect(y - self.size / 2, x - self.size / 2, self.size, self.size)
-            #     pygame.draw.rect(self.bg, (0, 204, 102), coords)
+            if self.targets.size > 1:
+                for t in self.targets:
+                    x, y = self.indx2coord(t, center=True)
+                    coords = pygame.Rect(y - self.size / 2, x - self.size / 2, self.size, self.size)
+                    pygame.draw.rect(self.bg, (0, 204, 102), coords)
+            else:
+                x, y = self.indx2coord(self.targets, center=True)
+                coords = pygame.Rect(y - self.size / 2, x - self.size / 2, self.size, self.size)
+                pygame.draw.rect(self.bg, (0, 204, 102), coords)
 
                 # Draw Wall in black color.
             for s in self.edges:
@@ -344,7 +353,7 @@ class GridworldGui(Gridworld, object):
                 coords = pygame.Rect(y, x, self.size, self.size)
                 pygame.draw.rect(self.bg, (255, 0, 0), coords)  # the obstacles are in color red
 
-        self.bg_rendered = True  # don't render again unless flag is set
+        self.bg_rendered = False  # don't render again unless flag is set
         self.surface.blit(self.bg, (0, 0))
 
     def mainloop(self):
@@ -357,30 +366,36 @@ class GridworldGui(Gridworld, object):
         while True:
             for event in pygame.event.get():
                 if event.type == pgl.QUIT:
-                    print(target_path)
                     sys.exit()
                 elif event.type == pgl.KEYDOWN and event.key == pgl.K_ESCAPE:
-                    print(target_path)
                     sys.exit()
                 else:
                     pass
 
-            if self.current == self.current_target:
-                print "reached ", self.target_index + 1, " goal"
-                if self.target_index < (len(self.targets) - 1):
-                    self.target_index = self.target_index + 1
-                    self.path_index = 0
-                    self.current_target = self.targets[self.target_index]
-                    self.current_target_path = self.targets_path[self.target_index]
+            if self.task_type == 'sequential':
+                if self.current == self.targets[self.target_index]:
+                    print "reached ", self.target_index + 1, " goal"
+                    if self.target_index < (len(self.targets_path) - 1):
+                        self.target_index = self.target_index + 1
+                    else:
+                        print "completed sequential task"
+            elif self.task_type == 'disjunction':
+                if np.isin(self.current, self.targets):
+                    print "completed disjunction task"
 
-            self.current_target = self.move_obj(self.current_target, bg=False, random_walk=False,
-                                                next_state=self.current_target_path[self.path_index])
+            if self.time_index < self.targets_path.shape[1] - 1 - self.horizon:
+                self.time_index = self.time_index + 1
+            else:
+                print "simulation complete"
+                sys.exit()
+            acc = []
+            if self.task_type == 'sequential':
+                acc = self.targets_path[self.target_index, self.time_index:self.time_index + self.horizon]
+            elif self.task_type == 'disjunction':
+                acc = self.targets_path[:, self.time_index:self.time_index + self.horizon]
+            self.targets = self.targets_path[:, self.time_index]
 
-            if self.path_index < len(self.current_target_path) - 1 - self.horizon:
-                self.path_index = self.path_index + 1
-            target_path.append(self.current_target)
-            self.mdp.update_reward(self.current_target_path[self.path_index:self.path_index + self.horizon])
-            #self.mdp.update_reward(self.current_target)
+            self.mdp.update_reward(acc)
             self.mdp.update_alpha(self.current)
             x = self.mdp.primal_linear_program()
 
@@ -394,11 +409,9 @@ class GridworldGui(Gridworld, object):
                 # raw_input('Press Enter to restart ...')
                 self.current = self.mdp.init  # restart the game
                 self.target_index = 0
-                self.path_index = 0
-                self.current_target = self.targets[self.target_index]
-                self.current_target_path = self.targets_path[self.target_index]
-                target_path = []
+                self.time_index = 0
+
                 print "the current state is {}".format(self.current)
-                self.state2circle(self.current)
+            self.state2circle(self.current)
             self.screen.blit(self.surface, (0, 0))
             pygame.display.flip()

@@ -103,12 +103,14 @@ class MDP:
         self.reward = 0*self.reward
         self.acc = new_acc
 
-        if type(self.acc) == int:
-            self.reward[self.acc] = -1
-        elif len(self.acc) == self.horizon:
-            #print len(self.acc)
-            for i in range(self.horizon):
-                self.reward[self.acc[i], i] = -1
+        if len(self.acc) > 0:
+            if len(self.acc.shape) == 2:
+                for i in range(self.horizon):
+                    self.reward[self.acc[:, i], i] = -1
+            elif len(self.acc.shape) == 1:
+                for i in range(self.horizon):
+                    self.reward[self.acc[i], i] = -1
+
         if len(self.obstacles) > 0:
             self.reward[self.obstacles] = 0.03
 

@@ -42,12 +42,12 @@ class MDP:
 
     def terminal_cost(self, state_index):
         "Return a numeric reward for this state."
-        if type(self.acc) == int:
-            x_goal, y_goal = self.coords(self.acc)
-        else:
-            x_goal, y_goal = self.coords(self.acc[-1])
-        x, y = self.coords(state_index)
-        manhattan_distance = abs(x_goal-x) + abs(y_goal - y) + 1.0
+        # if type(self.acc) == int:
+        #     x_goal, y_goal = self.coords(self.acc)
+        # else:
+        #     x_goal, y_goal = self.coords(self.acc[-1])
+        # x, y = self.coords(state_index)
+        # manhattan_distance = abs(x_goal-x) + abs(y_goal - y) + 1.0
         #return -1.0/manhattan_distance
         return 0 * state_index
 

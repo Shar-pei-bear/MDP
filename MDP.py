@@ -112,7 +112,7 @@ class MDP:
                     self.reward[self.acc[i], i] = -1
 
         if len(self.obstacles) > 0:
-            self.reward[self.obstacles] = 0.03
+            self.reward[self.obstacles] = 3  # 0.03
 
     def primal_linear_program(self):
         """

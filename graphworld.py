@@ -12,12 +12,13 @@ class GraphworldGui(object):
         self.edges = edges
         self.actlist = actlist
         self.targets_path = np.asarray(targets_path)
-        self.obstacles = obstacles
+
         self.task_type = task_type
 
         self.horizon = nstates - 1
         self.target_index = 0
         self.time_index = 0
+        self.obstacles = obstacles
         self.configuration_index = 0
         self.p = 0.5
 
@@ -28,7 +29,8 @@ class GraphworldGui(object):
             acc = self.targets_path[:, self.time_index:self.time_index + self.horizon]
         self.targets = self.targets_path[:, self.time_index]
 
-        self.mdp = MDP(initial, self.actlist, range(self.nstates), acc=acc, obstacles=obstacles, horizon=self.horizon)
+        self.mdp = MDP(initial, self.actlist, range(self.nstates), acc=acc,
+                       obstacles=np.ones((self.horizon, 2), dtype=np.int)*self.obstacles[self.time_index, :], horizon=self.horizon)
         self.prolist = [0.9, 0.9, 0.9, 0.9]
         self.mdp.prob = self.getProbs(self.configuration_index)
 
@@ -122,6 +124,7 @@ class GraphworldGui(object):
             fig.clear()
             values = np.ones(self.nstates) * 0.25
             values[self.current] = 1
+            values[self.obstacles[self.time_index, :]] = 0.5
             nx.draw(self.dg, pos=pos, cmap=plt.get_cmap('viridis'), node_color=values, with_labels=True,
                     font_color='white', font_weight='bold')
 
@@ -140,22 +143,26 @@ class GraphworldGui(object):
                 if np.isin(self.current, self.targets):
                     print "completed disjunction task"
 
-            self.mdp.prob = self.getProbs(np.random.choice(2, p=[1 - self.p, self.p]))
+            #self.mdp.prob = self.getProbs(np.random.choice(2, p=[1 - self.p, self.p]))
+            #self.mdp.prob = self.getProbs(self.configuration_index)
+            self.time_index = self.time_index + 1
+            self.mdp.obstacles = np.ones((self.horizon, 2), dtype=np.int)*self.obstacles[self.time_index, :]
+            self.mdp.update_reward()
             self.mdp.update_alpha(self.current)
             x = self.mdp.primal_linear_program()
 
-            if self.time_index % 2 == 0:
-                self.configuration_index = np.random.choice(2)
-                self.construct_graph()
-            self.mdp.prob = self.getProbs(self.configuration_index)
+            # if self.time_index % 2 == 0:
+            #     self.configuration_index = np.random.choice(2)
+            #     self.construct_graph()
+            # self.mdp.prob = self.getProbs(self.configuration_index)
 
             policy = x[0, self.current, :] / np.sum(x[0, self.current, :])
             policy[policy < 0] = 0
             self.follow(policy)
             #raw_input('Press Enter to continue ...')
-            self.time_index = self.time_index + 1
+
             self.p = (self.p*(self.time_index - 1) + self.configuration_index)/self.time_index
-            if self.current in self.obstacles:
+            if self.current in self.obstacles[self.time_index, :]:
                 # hitting the obstacles
                 print "Detected, restarting ..."
                 # raw_input('Press Enter to restart ...')

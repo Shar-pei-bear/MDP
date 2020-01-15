@@ -38,7 +38,7 @@ class MDP:
         self.update_alpha(self.init)
         self.horizon = horizon
         self.reward = np.zeros([len(self.states), self.horizon])
-        self.update_reward(acc)
+        self.update_reward()
 
     def terminal_cost(self, state_index):
         "Return a numeric reward for this state."
@@ -97,11 +97,11 @@ class MDP:
         self.alpha = np.zeros(len(self.states))
         self.alpha[current] = 1
 
-    def update_reward(self, new_acc):
+    def update_reward(self):
         # update reward according to the new acceptance set.
 
         self.reward = 0*self.reward
-        self.acc = new_acc
+        #self.acc = new_acc
 
         if len(self.acc) > 0:
             if len(self.acc.shape) == 2:
@@ -112,7 +112,9 @@ class MDP:
                     self.reward[self.acc[i], i] = -1
 
         if len(self.obstacles) > 0:
-            self.reward[self.obstacles] = 3  # 0.03
+            for i in range(self.horizon):
+                #self.reward[self.acc[:, i], i] = -1
+                self.reward[self.obstacles[i, :], i] = 3  # 0.03
 
     def primal_linear_program(self):
         """

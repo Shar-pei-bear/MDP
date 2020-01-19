@@ -6,8 +6,16 @@ values = np.ones(G.number_of_nodes()) * 0.25
 print values
 
 fig = plt.figure()
-ax1 = nx.draw_kamada_kawai(G, cmap=plt.get_cmap('Wistia'), node_color=values, with_labels=True,
+ax1 = nx.draw_kamada_kawai(G, cmap=plt.get_cmap('viridis'), node_color=values, with_labels=True,
         font_color='white', font_weight='bold')
 fig.axes[0].axis('equal')
 plt.show()
-nx.write_gml(G, "network_topology")
+
+flag = True
+for node in list(G.nodes):
+    if G.degree(node) == 0:
+        print 'graph not fully connected'
+        flag = False
+        break
+if flag:
+    nx.write_gml(G, "network_topology")

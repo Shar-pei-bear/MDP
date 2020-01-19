@@ -21,8 +21,8 @@ class MDP:
         identified by an index between 0 -N.  L: the labeling
         function, implemented as a dictionary: state: a subset of AP."""
 
-    def __init__(self, init=0, actlist=[], states=[0], prob=dict([]), acc=[], obstacles=[], gamma=1, horizon=1, AP=set([]),
-                 ncols=0, nrows=0, L=dict([])):
+    def __init__(self, init=0, actlist=[], states=[0], prob=dict([]), acc=[], obstacles=np.asarray([]), gamma=1,
+                 horizon=1, AP=set([]), ncols=0, nrows=0, L=dict([])):
         self.init = init
         self.actlist = actlist
         self.states = states
@@ -111,7 +111,7 @@ class MDP:
                 for i in range(self.horizon):
                     self.reward[self.acc[i], i] = -1
 
-        if len(self.obstacles) > 0:
+        if self.obstacles.size > 0:
             for i in range(self.horizon):
                 #self.reward[self.acc[:, i], i] = -1
                 self.reward[self.obstacles[i, :], i] = 3  # 0.03
@@ -151,7 +151,9 @@ class MDP:
 
         sol = cvxopt.solvers.lp(c, G, h, solver='glpk')
         #return np.array(sol['x']).reshape((self.horizon, len(self.states)))
-        return np.array(sol['z']).reshape((self.horizon, len(self.states), len(self.actlist)))
+        # np.array(sol['z']).reshape((self.horizon, len(self.states), len(self.actlist)))
+
+        return sol
 
 def productMDP(mdp, dra):
     pmdp = MDP()

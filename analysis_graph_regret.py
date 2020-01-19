@@ -5,6 +5,9 @@ import seaborn as sns
 nstates = 8
 static_cost = np.load('graph_static_cost.npy')
 dynamic_cost = np.load('graph_dynamic_cost.npy')
+print static_cost
+print dynamic_cost
+
 edges = [[(0, 1), (0, 2), (1, 2), (2, 3), (3, 4), (4, 5), (4, 6), (5, 6), (6, 7)],
          [(0, 1), (1, 2), (2, 3), (3, 4), (3, 5), (4, 5), (5, 6), (5, 7), (6, 7)]]
 

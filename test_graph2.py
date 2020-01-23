@@ -7,7 +7,7 @@ task_type = 'sequential'
 network_file = 'network_topology'
 T = 0
 gwg = GraphworldGui(network_file, initial, targets, num_obstacles, T, task_type)
-gwg.mainloop()
+#gwg.mainloop()
 metrics = np.zeros((5, 6, 3))
 max_decoy_number = 6
 max_T = 6

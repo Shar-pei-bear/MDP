@@ -79,7 +79,9 @@ class GraphworldGui(object):
         action = str(np.random.choice(a=self.actlist, p=policy))
         #print 'current state is ', self.current
         #print 'current action is ', action
+        dest = np.argmax(self.mdp.prob[action][self.current, :])
         self.move(action)
+        return dest
         #time.sleep(1)
 
     def move(self, act, obs=False):
@@ -165,11 +167,11 @@ class GraphworldGui(object):
 
             policy = x[0, self.current, :] / np.sum(x[0, self.current, :])
             policy[policy < 0] = 0
-            self.follow(policy)
+            dest = self.follow(policy)
             # raw_input('Press Enter to continue ...')
 
             # self.p = (self.p*(self.time_index - 1) + self.configuration_index)/self.time_index
-            if np.isin(self.current, self.obstacles) or self.current in self.dead_end:
+            if np.isin(dest, self.obstacles) or self.current in self.dead_end:
                 # hitting the obstacles
                 print 'the current time instant is ', self.time_index
                 self.reset()

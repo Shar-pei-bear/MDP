@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-metrics = np.load('data/metrics.npy')
+metrics = np.load('metrics.npy')
 cases = [r'$1\,decoy$', r'$2\,decoys$', r'$3\,decoys$', r'$4\,decoys$', r'$5\,decoys$']
 colors = ['#1f77b4',
           '#ff7f0e',

@@ -1,9 +1,9 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-static_cost = np.load('static_cost.npy')
+static_cost = np.load('data/static_cost.npy')
 static_map = static_cost.reshape([8, 10])
-dynamic_cost = np.load('dynamic_cost.npy')
+dynamic_cost = np.load('data/dynamic_cost.npy')
 dynamic_map = dynamic_cost.reshape([8, 10])
 
 fig = plt.figure()

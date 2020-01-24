@@ -1,7 +1,7 @@
 from graphworld import *
 import math
 
-graph_static_policies = np.load('graph_static_policies.npy')
+graph_static_policies = np.load('data/graph_static_policies.npy')
 print graph_static_policies.shape
 # initial = 17  # 0
 # targets = [7]  # 7

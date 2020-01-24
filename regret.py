@@ -14,7 +14,7 @@ gw = Gridworld(initial, ncols, nrows, robotmdp, targets, targets_path, obstacles
 
 terminal_cost = np.zeros(len(gw.mdp.states))
 
-static_policies = np.load('static_policies.npy')
+static_policies = np.load('data/static_policies.npy')
 #dynamic_policies = np.load('dynamic_policies.npy')
 
 static_costs = np.zeros([gw.mdp.horizon + 1, len(gw.mdp.states)])

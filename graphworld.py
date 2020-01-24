@@ -6,7 +6,8 @@ import itertools
 import random
 
 class GraphworldGui(object):
-    def __init__(self, network_file='network_topology', initial=0, targets=[], num_obstacles=0, T=1, task_type='sequential'):
+    def __init__(self, network_file='network_topology', initial=0, targets=[], num_obstacles=0, T=1,
+                 task_type='sequential', visualization=False, decoys_set=[]):
         self.dg = nx.read_gml(network_file)
 
         edge_number = []
@@ -23,6 +24,8 @@ class GraphworldGui(object):
         self.T = T
         self.num_obstacles = num_obstacles
         self.task_type = task_type
+        self.visualization = visualization
+        self.decoys_set = decoys_set
 
         self.obstacles_combo = []
         self.obstacles = np.asarray([])
@@ -49,7 +52,10 @@ class GraphworldGui(object):
 
     def sample_obstacles(self):
         if self.num_obstacles:
-            self.obstacles_combo = list(itertools.combinations(range(self.nstates), self.num_obstacles))
+            decoys_set = list(self.decoys_set)
+            if self.current in decoys_set:
+                decoys_set.remove(self.current)
+            self.obstacles_combo = list(itertools.combinations(decoys_set, self.num_obstacles))
             random.shuffle(self.obstacles_combo)
             obstacles_index = np.random.choice(range(len(self.obstacles_combo)))
             self.obstacles = np.asarray(self.obstacles_combo[obstacles_index])
@@ -62,9 +68,11 @@ class GraphworldGui(object):
         prob = {a: np.eye(self.nstates) for a in self.actlist}
         action_index = 0
         for edge in list(self.dg.edges()):
-            prob[self.actlist[action_index]][int(edge[0]), int(edge[1])] = 0.9
-            prob[self.actlist[action_index]][int(edge[0]), int(edge[0])] = 0.1
-            action_index = (action_index + 1) % self.action_number
+            if (not np.isin(int(edge[0]), self.obstacles)) and (not np.isin(int(edge[0]), self.targets)):
+                prob[self.actlist[action_index]][int(edge[0]), int(edge[1])] = 0.9
+                prob[self.actlist[action_index]][int(edge[0]), int(edge[0])] = 0.1
+                action_index = (action_index + 1) % self.action_number
+
         return prob
 
     def follow(self, policy):
@@ -89,24 +97,24 @@ class GraphworldGui(object):
         The robot moving in the Graph world with respect to the specification in DRA.
         """
         target_path = []
-
-        # fig = plt.gcf()
-        # fig.show()
-        # fig.canvas.draw()
+        if self.visualization:
+            fig = plt.gcf()
+            fig.show()
+            fig.canvas.draw()
         # pos = {0: (0, 1), 1: (1, 1), 2: (1, 0), 3: (2, 1), 4: (3, 1), 5: (3, 0), 6: (4, 1), 7: (4, 0)}
         while True:
+            if self.visualization:
+                fig.clear()
+                values = np.ones(self.nstates) * 0.25
+                values[self.current] = 1
+                if self.num_obstacles:
+                    values[self.obstacles] = 0.5
+                nx.draw_kamada_kawai(self.dg, cmap=plt.get_cmap('viridis'), nodelist=[str(e) for e in range(self.nstates)],
+                                     node_color=values, with_labels=True, font_color='white', font_weight='bold')
 
-            # fig.clear()
-            # values = np.ones(self.nstates) * 0.25
-            # values[self.current] = 1
-            # if self.num_obstacles:
-            #     values[self.obstacles] = 0.5
-            # nx.draw_kamada_kawai(self.dg, cmap=plt.get_cmap('viridis'), nodelist=[str(e) for e in range(self.nstates)],
-            #                      node_color=values, with_labels=True, font_color='white', font_weight='bold')
-            #
-            # fig.axes[0].axis('equal')
-            # plt.pause(1)
-            # fig.canvas.draw()
+                fig.axes[0].axis('equal')
+                plt.pause(1)
+                fig.canvas.draw()
 
             if self.task_type == 'sequential':
                 if self.current == self.targets[self.target_index]:
@@ -132,19 +140,13 @@ class GraphworldGui(object):
                 return False
 
             if self.T and self.num_obstacles and self.time_index % self.T == 0:
-                obstacles_index = np.random.choice(range(len(self.obstacles_combo)))
-                self.obstacles = np.asarray(self.obstacles_combo[obstacles_index])
+                self.sample_obstacles()
 
-            if np.isin(self.current, self.obstacles):
-                # hitting the obstacles
-                print 'the current time instant is ', self.time_index
-                self.reset()
-                return False
-
-            self.mdp.obstacles = np.ones((self.horizon, self.obstacles.size), dtype=np.int)*self.obstacles
-            self.mdp.update_reward()
             self.mdp.update_alpha(self.current)
             sol = self.mdp.primal_linear_program()
+            self.mdp.prob = self.getProbs()
+            self.mdp.obstacles = np.ones((self.horizon, self.obstacles.size), dtype=np.int)*self.obstacles
+            self.mdp.update_reward()
 
             if sol['status'] == 'optimal':
                 x = np.array(sol['z']).reshape((self.horizon, self.nstates, self.action_number))
@@ -167,7 +169,7 @@ class GraphworldGui(object):
             # raw_input('Press Enter to continue ...')
 
             # self.p = (self.p*(self.time_index - 1) + self.configuration_index)/self.time_index
-            if np.isin(self.current, self.obstacles) or np.isin(self.current, self.dead_end):
+            if np.isin(self.current, self.obstacles) or self.current in self.dead_end:
                 # hitting the obstacles
                 print 'the current time instant is ', self.time_index
                 self.reset()

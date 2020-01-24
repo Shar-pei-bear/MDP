@@ -3,8 +3,8 @@ import networkx as nx
 import matplotlib.pyplot as plt
 import seaborn as sns
 nstates = 8
-static_cost = np.load('graph_static_cost.npy')
-dynamic_cost = np.load('graph_dynamic_cost.npy')
+static_cost = np.load('data/graph_static_cost.npy')
+dynamic_cost = np.load('data/graph_dynamic_cost.npy')
 print static_cost
 print dynamic_cost
 

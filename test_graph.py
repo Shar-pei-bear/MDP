@@ -15,7 +15,7 @@ nstates = 8
 
 # obstacles = [[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
 #              [5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5]]
-obstacles = np.load('obstacles.npy')
+obstacles = np.load('data/obstacles.npy')
 print obstacles
 targets_path = [[7, 7, 7, 7, 7, 7, 7]]
 task_type ='sequential'

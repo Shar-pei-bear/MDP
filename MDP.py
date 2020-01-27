@@ -49,7 +49,11 @@ class MDP:
         # x, y = self.coords(state_index)
         # manhattan_distance = abs(x_goal-x) + abs(y_goal - y) + 1.0
         #return -1.0/manhattan_distance
-        return 0 * state_index
+        if state_index == self.acc[-1]:
+            return 1
+        else:
+            return 0
+        # return 0 * state_index
 
     def coords(self, state_index):
         return state_index / self.nrows, state_index % self.nrows  # the coordinate for state s.
@@ -60,11 +64,11 @@ class MDP:
 
     def r(self, state_index, action, time_index):
         "Return a numeric reward for this state action pair."
-        return np.sum(self.reward[:, time_index] * self.T(state_index, action))
+        return np.sum(self.reward[:, time_index] * self.T(state_index, action, time_index))
 
-    def T(self, state_index, action):
+    def T(self, state_index, action, time_index):
         """Transition model.  From a state and an action, return a row in the matrix for next-state probability."""
-        return self.prob[action][state_index, :]
+        return self.prob[action][time_index, state_index, :]
 
     def P(self, state, action, next_state):
         "Derived from the transition model. For a state, an action and the next_state, return the probability of this transition."
@@ -106,38 +110,38 @@ class MDP:
         if len(self.acc) > 0:
             if len(self.acc.shape) == 2:
                 for i in range(self.horizon):
-                    self.reward[self.acc[:, i], i] = -1
+                    self.reward[self.acc[:, i], i] = 0
             elif len(self.acc.shape) == 1:
                 for i in range(self.horizon):
-                    self.reward[self.acc[i], i] = -1
+                    self.reward[self.acc[i], i] = 0
 
         if self.obstacles.size > 0:
             for i in range(self.horizon):
                 #self.reward[self.acc[:, i], i] = -1
-                self.reward[self.obstacles[i, :], i] = 3  # 0.03
+                self.reward[self.obstacles[i, :], i] = 0  # 0.03
 
     def primal_linear_program(self):
         """
         This function solves the primal linear program of the finite horizon risk sensitive MDP.
         """
         c = np.zeros(self.horizon * len(self.states))
-        c[0: len(self.states)] = -self.alpha
+        c[0: len(self.states)] = self.alpha
 
-        G = np.repeat(np.eye(self.horizon * len(self.states)), len(self.actlist), axis=0)
+        G = -np.repeat(np.eye(self.horizon * len(self.states)), len(self.actlist), axis=0)
         # Todo: instaed of using loop, using matrix for efficiency
         for i in range(self.horizon - 1):
             for j in range(len(self.states)):
                 for k in range(len(self.actlist)):
                     action = self.actlist[k]
                     G[i * len(self.states) * len(self.actlist) + j * len(self.actlist) + k,
-                        (i + 1) * len(self.states): (i + 2) * len(self.states)] = -np.exp(self.r(j, action, i)) * self.T(j, action)
+                        (i + 1) * len(self.states): (i + 2) * len(self.states)] = np.exp(self.r(j, action, i)) * self.T(j, action, i)
 
         h = np.zeros(self.horizon * len(self.states) * len(self.actlist))
         for j in range(len(self.states)):
             for k in range(len(self.actlist)):
                 action = self.actlist[k]
-                h[(self.horizon - 1) * len(self.states) * len(self.actlist) + j * len(self.actlist) + k] = np.exp(
-                    self.r(j, action, self.horizon - 1)) * np.sum(self.T(j, action) * np.exp(self.terminal_cost(j)))
+                h[(self.horizon - 1) * len(self.states) * len(self.actlist) + j * len(self.actlist) + k] = -np.exp(
+                    self.r(j, action, self.horizon - 1)) * np.sum(self.T(j, action, self.horizon-1) * np.exp(self.terminal_cost(j)))
         # for i in range(43, 44):
         #     print(G[i,16:32])
         #print(h[:-20])
@@ -150,6 +154,7 @@ class MDP:
         cvxopt.solvers.options['LPX_K_MSGLEV'] = 0  # previous versions
 
         sol = cvxopt.solvers.lp(c, G, h, solver='glpk')
+
         #return np.array(sol['x']).reshape((self.horizon, len(self.states)))
         # np.array(sol['z']).reshape((self.horizon, len(self.states), len(self.actlist)))
 

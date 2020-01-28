@@ -45,7 +45,7 @@ class GraphworldGui(object):
             self.dead_end = dead_end.difference(self.targets)
             acc = np.ones((self.horizon, self.targets.size), dtype=np.int)*self.targets
 
-        self.mdp = MDP(initial, self.actlist, range(self.nstates), acc=acc,
+        self.mdp = MDP(initial, self.actlist, range(self.nstates + 1), acc=acc,
                        obstacles=np.ones((self.horizon, self.obstacles.size), dtype=np.int)*self.obstacles, horizon=self.horizon)
 
         self.mdp.prob = self.getProbs()
@@ -68,12 +68,20 @@ class GraphworldGui(object):
         prob = {a: np.eye(self.nstates) for a in self.actlist}
         action_index = 0
         for edge in list(self.dg.edges()):
-            if (not np.isin(int(edge[0]), self.obstacles)) and (not np.isin(int(edge[0]), self.targets)):
+            if not np.in1d(int(edge[0]), self.targets):
                 prob[self.actlist[action_index]][int(edge[0]), int(edge[1])] = 0.9
                 prob[self.actlist[action_index]][int(edge[0]), int(edge[0])] = 0.1
                 action_index = (action_index + 1) % self.action_number
 
-        return prob
+        prob_aug = {a: np.repeat(np.eye(gwg.nstates + 1)[np.newaxis, :, :], gwg.mdp.horizon, axis=0) for a in gwg.actlist}
+        for a in self.actlist:
+            for node_num_1 in range(self.nstates + 1):
+                for node_num_2 in range(self.nstates + 1):
+                    if not np.in1d(node_num_2, self.obstacles):
+                        prob_aug[self.actlist[action_index]][:, node_num_1, node_num_2] = prob[a][node_num_1, node_num_2]
+                    else:
+                        prob_aug[self.actlist[action_index]][:, node_num_1, node_num_2] = prob[a][node_num_1, node_num_2]
+        return prob_aug
 
     def follow(self, policy):
         action = str(np.random.choice(a=self.actlist, p=policy))
@@ -129,7 +137,7 @@ class GraphworldGui(object):
                     # else:
                     #     print "completed sequential task"
             elif self.task_type == 'disjunction':
-                if np.isin(self.current, self.targets):
+                if np.in1d(self.current, self.targets):
                     print "completed disjunction task"
 
             # self.mdp.prob = self.getProbs(np.random.choice(2, p=[1 - self.p, self.p]))
@@ -171,7 +179,7 @@ class GraphworldGui(object):
             # raw_input('Press Enter to continue ...')
 
             # self.p = (self.p*(self.time_index - 1) + self.configuration_index)/self.time_index
-            if np.isin(dest, self.obstacles) or self.current in self.dead_end:
+            if np.in1d(dest, self.obstacles) or self.current in self.dead_end:
                 # hitting the obstacles
                 print 'the current time instant is ', self.time_index
                 self.reset()

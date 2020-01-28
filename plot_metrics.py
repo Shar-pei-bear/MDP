@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 
 
 metrics = np.load('metrics.npy')
-cases = [r'$1\,decoy$', r'$2\,decoys$', r'$3\,decoys$', r'$4\,decoys$', r'$5\,decoys$']
+cases = [r'$1\,IDS$', r'$2\,IDSs$', r'$3\,IDSs$', r'$4\,IDSs$', r'$5\,IDSs$']
 colors = ['#1f77b4',
           '#ff7f0e',
           '#2ca02c',
@@ -17,7 +17,7 @@ colors = ['#1f77b4',
           '#1a55FF']
 
 frequency = [0, 1.0/5.0, 1.0/4, 1.0/3, 1.0/2, 1.0/1]
-success_rate = np.flip(metrics, axis=1)
+success_rate = np.fliplr(metrics)
 success_rate = np.roll(success_rate, 1, axis=1)
 fig, ax = plt.subplots()
 for i in range(len(cases)):
@@ -34,7 +34,7 @@ fig, ax = plt.subplots()
 for i in range(len(cases)):
     ax.plot(success_rate[:, i, 0], success_rate[:, i, 2], marker='o', color=colors[i], label=cases[i])
     ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0.)
-plt.xlabel('Number of decoys')
+plt.xlabel('Number of IDSs')
 plt.ylabel('Success rate')
 plt.savefig('num_decoys.png', format='png', dpi=300, bbox_inches='tight')
 #plt.title('The relationship between roaming frequency and attacker success rate')

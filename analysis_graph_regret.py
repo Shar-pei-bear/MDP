@@ -1,8 +1,9 @@
 import numpy as np
 import networkx as nx
 import matplotlib.pyplot as plt
+from scipy.stats import chi2_contingency
 import matplotlib.cbook as cbook
-import seaborn as sns
+# import seaborn as sns
 
 nstates = 8
 static_cost = np.load('graph_static_cost.npy')
@@ -22,8 +23,7 @@ x = np.arange(len(labels))  # the label locations
 width = 0.35  # the width of the bars
 
 fig, ax = plt.subplots()
-rects1 = ax.bar(x - width/2, regret_mean, width, label='Mean')
-rects2 = ax.bar(x + width/2, regret_std, width, label='Standard deviation')
+rects1 = ax.bar(x, regret_mean, width, label='Mean')
 
 # Add some text for labels, title and custom x-axis tick labels, etc.
 ax.set_ylabel('Regret')
@@ -45,11 +45,11 @@ def autolabel(rects):
 
 
 autolabel(rects1)
-autolabel(rects2)
 
 fig.tight_layout()
 plt.savefig('regret_bar.png', format='png', dpi=300)
 plt.show()
+
 # stats = cbook.boxplot_stats(regret, whis=1.5, labels=range(7))
 # fig1, ax1 = plt.subplots()
 # bp = ax1.boxplot(regret, showmeans=True, labels=range(7))
@@ -110,3 +110,48 @@ plt.show()
 # print np.max(dynamic_cost - static_cost)
 # print np.argmax(dynamic_cost - static_cost)
 
+optimal_success = (dynamic_cost[:, [7, 13, 9, 11, 10, 0, 19]] - 1) / (np.exp(1) - 1)
+optimal_success_mean = np.mean(optimal_success, axis=0)
+
+online_success = (static_cost[:, [7, 13, 9, 11, 10, 0, 19]] - 1) / (np.exp(1) - 1)
+online_success_mean = np.mean(online_success, axis=0)
+
+# fig, ax = plt.subplots()
+# rects1 = ax.bar(x - width/2, optimal_success_mean, width, label='Optimal')
+# rects2 = ax.bar(x + width/2, online_success_mean, width, label='Online')
+#
+# # Add some text for labels, title and custom x-axis tick labels, etc.
+# ax.set_ylabel('Success rate')
+# ax.set_xlabel('Distance to target')
+# ax.set_xticks(x)
+# ax.set_xticklabels(labels)
+# ax.set_ylim(0, 1.25)
+# ax.legend(loc='upper left')
+#
+#
+# def autolabel(rects):
+#     """Attach a text label above each bar in *rects*, displaying its height."""
+#     for rect in rects:
+#         height = rect.get_height()
+#         ax.annotate('{}'.format(np.round(height, 2)),
+#                     xy=(rect.get_x() + rect.get_width() / 2, height),
+#                     xytext=(0, 3),  # 3 points vertical offset
+#                     textcoords="offset points",
+#                     ha='center', va='bottom')
+#
+#
+# autolabel(rects1)
+# autolabel(rects2)
+#
+# fig.tight_layout()
+# plt.savefig('success_rate.png', format='png', dpi=300)
+# plt.show()
+#
+# #online_success_mean = online_success_mean[2: ]
+# obs = np.vstack((online_success_mean, 1 - online_success_mean))*100
+# obs = np.round(obs)
+# #obs = np.array([[10, 20, 30, 40, 50], [50, 40, 30, 20, 10]])
+# print obs
+# chi2, p, dof, ex = chi2_contingency(obs)
+# print p
+# print dof

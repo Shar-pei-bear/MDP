@@ -18,5 +18,4 @@ np.save('obstacles_combo', obstacles_combo)
 N = math.factorial(19)/math.factorial(19 - num_obstacles)/math.factorial(num_obstacles)
 obstacles_indexes = np.random.choice(range(N), (100, 7))
 obstacles_indexes = np.repeat(obstacles_indexes, 3, axis=1)
-obstacles_indexes = obstacles_indexes[:, 0:19]
 np.save('obstacles_indexes', obstacles_indexes)

@@ -1,36 +1,109 @@
 import numpy as np
 import networkx as nx
 import matplotlib.pyplot as plt
+import matplotlib.cbook as cbook
 import seaborn as sns
 
 nstates = 8
-static_cost = np.exp(np.load('graph_static_cost.npy'))
+static_cost = np.load('graph_static_cost.npy')
 dynamic_cost = np.load('graph_dynamic_cost.npy')
-print np.max(dynamic_cost  - static_cost)
+#print np.max(dynamic_cost - static_cost)
+# 7, 13, 9, 11, 10, 0, 19
+conf_intervals = np.zeros((7, 2))
+conf_intervals[:, 1] = 1
+box_colors = ['darkkhaki', 'royalblue']
+regret_mean = np.mean(dynamic_cost[:, [7, 13, 9, 11, 10, 0, 19]] - static_cost[:, [7, 13, 9, 11, 10, 0, 19]], axis=0)
+regret = dynamic_cost[:, [7, 13, 9, 11, 10, 0, 19]] - static_cost[:, [7, 13, 9, 11, 10, 0, 19]]
 
-dynamic_cost = dynamic_cost[8, :]
-static_cost = static_cost[8, :]
+regret_std = np.std(regret, axis = 0)
+labels = ['0', '1', '2', '3', '4', '5', '6']
 
-network_file = 'network_topology'
-dg = nx.read_gml(network_file)
+x = np.arange(len(labels))  # the label locations
+width = 0.35  # the width of the bars
 
-values = dynamic_cost
-fig = plt.figure()
-ax1 = nx.draw_circular(dg,  nodelist=[str(i) for i in range(20)], cmap=plt.get_cmap('coolwarm'), vmin=1, vmax=2.72,
-                       node_color=values, with_labels=True, font_color='white', font_weight='bold')
+fig, ax = plt.subplots()
+rects1 = ax.bar(x - width/2, regret_mean, width, label='Mean')
+rects2 = ax.bar(x + width/2, regret_std, width, label='Standard deviation')
 
-fig.axes[0].axis('equal')
-plt.savefig('graph_dynamic_map.png', format = 'png', dpi = 300)
+# Add some text for labels, title and custom x-axis tick labels, etc.
+ax.set_ylabel('Regret')
+ax.set_xlabel('Distance to target')
+ax.set_xticks(x)
+ax.set_xticklabels(labels)
+ax.legend()
 
+
+def autolabel(rects):
+    """Attach a text label above each bar in *rects*, displaying its height."""
+    for rect in rects:
+        height = rect.get_height()
+        ax.annotate('{}'.format(np.round(height, 2)),
+                    xy=(rect.get_x() + rect.get_width() / 2, height),
+                    xytext=(0, 3),  # 3 points vertical offset
+                    textcoords="offset points",
+                    ha='center', va='bottom')
+
+
+autolabel(rects1)
+autolabel(rects2)
+
+fig.tight_layout()
+plt.savefig('regret_bar.png', format='png', dpi=300)
 plt.show()
-
-fig = plt.figure()
-values = static_cost
-ax2 = nx.draw_circular(dg,  nodelist=[str(i) for i in range(20)], cmap=plt.get_cmap('coolwarm'), vmin=1, vmax=2.72,
-                       node_color=values, with_labels=True, font_color='white', font_weight='bold')
-fig.axes[0].axis('equal')
-plt.savefig('graph_static_map.png', format='png', dpi=300)
-plt.show()
+# stats = cbook.boxplot_stats(regret, whis=1.5, labels=range(7))
+# fig1, ax1 = plt.subplots()
+# bp = ax1.boxplot(regret, showmeans=True, labels=range(7))
+# plt.setp(bp['boxes'], color='black')
+# plt.setp(bp['whiskers'], color='black')
+# plt.setp(bp['fliers'], color='red', marker='+')
+#
+# ax1.yaxis.grid(True, linestyle='-', which='major', color='lightgrey',
+#                alpha=0.5)
+#
+# # Hide these grid behind plot objects
+# ax1.set_axisbelow(True)
+# ax1.set_xlabel('Distance to target')
+# ax1.set_ylabel('Regret')
+# top = 1.8
+# bottom = 0
+# ax1.set_ylim(bottom, top)
+#
+# num_boxes = 7
+# pos = np.arange(num_boxes) + 1
+# upper_labels = [str(np.round(s, 2)) for s in regret_mean]
+# weights = ['bold', 'semibold']
+# for tick, label in zip(range(num_boxes), ax1.get_xticklabels()):
+#     k = tick % 2
+#     ax1.text(pos[tick], .97, upper_labels[tick],
+#              transform=ax1.get_xaxis_transform(),
+#              horizontalalignment='center', size='medium',
+#              weight=weights[k], color=box_colors[k])
+#
+# plt.savefig('regret.png', format='png', dpi=300)
+# plt.show()
+# dynamic_cost = dynamic_cost[8, :]
+# static_cost = static_cost[8, :]
+#
+# network_file = 'network_topology'
+# dg = nx.read_gml(network_file)
+#
+# values = dynamic_cost
+# fig = plt.figure()
+# ax1 = nx.draw_circular(dg,  nodelist=[str(i) for i in range(20)], cmap=plt.get_cmap('coolwarm'), vmin=1, vmax=2.72,
+#                        node_color=values, with_labels=True, font_color='white', font_weight='bold')
+#
+# fig.axes[0].axis('equal')
+# plt.savefig('graph_dynamic_map.png', format = 'png', dpi = 300)
+#
+# plt.show()
+#
+# fig = plt.figure()
+# values = static_cost
+# ax2 = nx.draw_circular(dg,  nodelist=[str(i) for i in range(20)], cmap=plt.get_cmap('coolwarm'), vmin=1, vmax=2.72,
+#                        node_color=values, with_labels=True, font_color='white', font_weight='bold')
+# fig.axes[0].axis('equal')
+# plt.savefig('graph_static_map.png', format='png', dpi=300)
+# plt.show()
 
 # print dynamic_cost
 # print static_cost

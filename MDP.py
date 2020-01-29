@@ -80,7 +80,7 @@ class MDP:
         N = len(self.states)
         S = set([])
         for a in self.actlist:
-            if not np.array_equal(self.T(state, a), np.zeros(N)):
+            if not np.array_equal(self.T(state, a, 0), np.zeros(N)):
                 S.add(a)
         return S
 
@@ -93,7 +93,7 @@ class MDP:
             return None  # Todo: considering adding the sink state
         N = len(self.states)
         i = self.states.index(state)
-        next_index = np.random.choice(N, num, p=self.prob[action][i, :])[
+        next_index = np.random.choice(N, num, p=self.prob[action][0, i, :])[
             0]  # Note that only one element is chosen from the array, which is the output by random.choice
         return self.states[next_index]
 

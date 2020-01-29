@@ -73,21 +73,25 @@ class GraphworldGui(object):
                 prob[self.actlist[action_index]][int(edge[0]), int(edge[0])] = 0.1
                 action_index = (action_index + 1) % self.action_number
 
-        prob_aug = {a: np.repeat(np.eye(gwg.nstates + 1)[np.newaxis, :, :], gwg.mdp.horizon, axis=0) for a in gwg.actlist}
+        prob_aug = {a: np.repeat(np.eye(self.nstates + 1)[np.newaxis, :, :], self.mdp.horizon, axis=0) for a in self.actlist}
         for a in self.actlist:
-            for node_num_1 in range(self.nstates + 1):
-                for node_num_2 in range(self.nstates + 1):
-                    if not np.in1d(node_num_2, self.obstacles):
-                        prob_aug[self.actlist[action_index]][:, node_num_1, node_num_2] = prob[a][node_num_1, node_num_2]
+            for node_num_1 in range(self.nstates):
+                for node_num_2 in range(self.nstates):
+                    if np.in1d(node_num_2, self.obstacles) and node_num_1 != node_num_2 \
+                            and not np.in1d(node_num_1, self.targets) and prob[a][node_num_1, node_num_2] > 0:
+                        prob_aug[a][:, node_num_1, :] = 0
+                        prob_aug[a][:, node_num_1, -1] = 1
+                        break
                     else:
-                        prob_aug[self.actlist[action_index]][:, node_num_1, node_num_2] = prob[a][node_num_1, node_num_2]
+                        prob_aug[a][:, node_num_1, node_num_2] = prob[a][node_num_1, node_num_2]
+
         return prob_aug
 
     def follow(self, policy):
         action = str(np.random.choice(a=self.actlist, p=policy))
         #print 'current state is ', self.current
         #print 'current action is ', action
-        dest = np.argmax(self.mdp.prob[action][self.current, :])
+        dest = np.argmax(self.mdp.prob[action][0, self.current, :])
         self.move(action)
         return dest
         #time.sleep(1)
@@ -159,7 +163,7 @@ class GraphworldGui(object):
             self.mdp.update_reward()
 
             if sol['status'] == 'optimal':
-                x = np.array(sol['z']).reshape((self.horizon, self.nstates, self.action_number))
+                x = np.array(sol['z']).reshape((self.horizon, self.nstates + 1, self.action_number))
             else:
                 print 'optimization failed'
                 print 'the current state is ', self.current
